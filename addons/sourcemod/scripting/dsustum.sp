@@ -22,7 +22,7 @@ int KalanSure, KalanSure2;
 bool BordoBereli[MAXPLAYERS] =  { false, ... }, oldurdumu[MAXPLAYERS] =  { false, ... };
 Handle h_timer = null;
 
-#define foreachPlayer(%1) for (int %1 = 1; %1 <= MaxClients; %1++) if (IsClientInGame(%1) && !IsFakeClient(%1))
+#define foreachPlayer(%1) for (int %1 = 1; %1 <= MaxClients; %1++) if (IsValidClient(%1))
 
 ConVar dsustum_flag = null;
 
@@ -56,10 +56,10 @@ public Action RoundStart(Event event, const char[] name, bool dontBroadcast)
 public Action OnClientDead(Event event, const char[] name, bool dontBroadcast)
 {
 	int attacker = GetClientOfUserId(event.GetInt("attacker"));
-	if (IsClientInGame(attacker) && BordoBereli[attacker])
+	if (IsValidClient(attacker) && BordoBereli[attacker])
 	{
 		int victim = GetClientOfUserId(event.GetInt("userid"));
-		if (IsClientInGame(victim))
+		if (IsValidClient(victim))
 		{
 			oldurdumu[attacker] = true;
 		}
@@ -159,7 +159,7 @@ public int Menu_CallBack(Menu menu, MenuAction action, int param1, int param2)
 public Action WeaponFire(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (IsClientInGame(client) && BordoBereli[client])
+	if (IsValidClient(client) && BordoBereli[client])
 	{
 		char WeaponNameDeagle[64];
 		GetClientWeapon(client, WeaponNameDeagle, sizeof(WeaponNameDeagle));
@@ -173,7 +173,7 @@ public Action WeaponFire(Event event, const char[] name, bool dontBroadcast)
 public Action Silahial(Handle timer, int userid)
 {
 	int client = GetClientOfUserId(userid);
-	if (IsClientInGame(client))
+	if (IsValidClient(client))
 	{
 		int Slots = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
 		if (Slots != -1)
@@ -189,7 +189,7 @@ public Action Silahial(Handle timer, int userid)
 public Action Kontrolettir(Handle timer, int userid)
 {
 	int client = GetClientOfUserId(userid);
-	if (IsClientInGame(client) && vantep)
+	if (IsValidClient(client) && vantep)
 	{
 		if (oldurdumu[client])
 		{
@@ -258,7 +258,7 @@ public Action BaslatOyunu(Handle timer)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if (!yazildi && IsClientInGame(client) && IsPlayerAlive(client) && strcmp(sArgs, yazilar[randomSayi], true) == 0 && !IsFakeClient(client) && GetClientTeam(client) == CS_TEAM_T)
+	if (!yazildi && IsValidClient(client) && IsPlayerAlive(client) && strcmp(sArgs, yazilar[randomSayi], true) == 0 && !IsFakeClient(client) && GetClientTeam(client) == CS_TEAM_T)
 	{
 		char sBuffer[512];
 		char ClientName[128];
@@ -303,6 +303,15 @@ void ShowStatusMessage(int client = -1, const char[] message = NULL_STRING, int 
 		}
 		show_survival_respawn_status.Cancel();
 	}
+}
+
+stock bool IsValidClient(int client, bool nobots = true)
+{
+	if (client <= 0 || client > MaxClients || !IsClientConnected(client) || (nobots && IsFakeClient(client)))
+	{
+		return false;
+	}
+	return IsClientInGame(client);
 }
 
 stock bool CheckAdminFlag(int client, const char[] flags) // Z harfi otomatik erişim verir
