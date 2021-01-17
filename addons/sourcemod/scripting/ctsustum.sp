@@ -29,7 +29,7 @@ public OnPluginStart()
 {
 	HookEvent("round_start", RoundStart);
 	RegConsoleCmd("sm_ctsustum", Command_Sustum, "sm_ctsustum");
-	ctsustum_flag = CreateConVar("sm_ctsustum_flag", "b", "Komutçu harici kullanacak kişinin yetki bayrağı");
+	ctsustum_flag = CreateConVar("sm_ctsustum_flag", "q", "Komutçu harici kullanacak kişinin yetki bayrağı");
 	AutoExecConfig(true, "CTSustum", "ByDexter");
 	yazilariOku();
 }
@@ -117,7 +117,7 @@ public Action MenuGoster(Handle timer)
 		yazildi = false;
 		h_timer = null;
 		KalanSure2 = 10;
-		h_timer = CreateTimer(1.0, BaslatOyunu, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+		h_timer = CreateTimer(0.3, BaslatOyunu, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 		return Plugin_Stop;
 	}
 	else
@@ -170,17 +170,22 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		{
 			for (int i = 1; i <= MaxClients; i++)
 			{
-				if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == CS_TEAM_CT && !warden_iswarden(i) && CTyazdimi[client])
+				if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == CS_TEAM_CT && !warden_iswarden(i) && CTyazdimi[i])
 				{
-					CTyazdimi[client] = false;
+					CTyazdimi[i] = false;
 					ClearWeaponEx(i);
 					ForcePlayerSuicide(i);
+					char sBuffer[512];
+					char ClientName[128];
+					GetClientName(i, ClientName, sizeof(ClientName));
+					Format(sBuffer, sizeof(sBuffer), "<font color='#FF0000'>%s</font> Kaybetti", ClientName);
+					ShowStatusMessage(-1, sBuffer, 2);
 					ChangeClientTeam(i, CS_TEAM_T);
 				}
 			}
 			yazildi = true;
 		}
-		PrintToChatAll("[SM] \x10%N\x01, klavye delikanlısı oyunu kazandı.", client);
+		PrintToChatAll("[SM] \x10%N\x01, klavye delikanlısı yazdı.", client);
 	}
 }
 

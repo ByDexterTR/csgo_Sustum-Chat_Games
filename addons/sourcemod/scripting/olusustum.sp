@@ -29,7 +29,7 @@ public OnPluginStart()
 {
 	HookEvent("round_start", RoundStart);
 	RegConsoleCmd("sm_olusustum", Command_Sustum, "sm_olusustum");
-	olusustum_flag = CreateConVar("sm_olusustum_flag", "b", "Komutçu harici kullanacak kişinin yetki bayrağı");
+	olusustum_flag = CreateConVar("sm_olusustum_flag", "q", "Komutçu harici kullanacak kişinin yetki bayrağı");
 	AutoExecConfig(true, "OluSustum", "ByDexter");
 	yazilariOku();
 }
@@ -104,7 +104,7 @@ public Action MenuGoster(Handle timer)
 		yazildi = false;
 		h_timer = null;
 		KalanSure2 = 10;
-		h_timer = CreateTimer(1.0, BaslatOyunu, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+		h_timer = CreateTimer(0.3, BaslatOyunu, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 		return Plugin_Stop;
 	}
 	else
@@ -139,7 +139,7 @@ public Action BaslatOyunu(Handle timer)
 		else
 		{
 			char sBuffer[512];
-			Format(sBuffer, sizeof(sBuffer), "ÖlüSustum: <font color='#00FF00'>%s</font> | Kalan Saniye: <font color='#00FF00'>%d</font>", yazilar[randomSayi], KalanSure2);
+			Format(sBuffer, sizeof(sBuffer), "ÖlüSustum: <font color='#FFA500'>%s</font> | Kalan Saniye: <font color='#FFA500'>%d</font>", yazilar[randomSayi], KalanSure2);
 			ShowStatusMessage(-1, sBuffer, 2);
 		}
 	}
@@ -151,6 +151,11 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 {
 	if (!yazildi && IsClientInGame(client) && !IsPlayerAlive(client) && strcmp(sArgs, yazilar[randomSayi], true) == 0 && !IsFakeClient(client) && GetClientTeam(client) == CS_TEAM_T)
 	{
+		char sBuffer[512];
+		char ClientName[128];
+		GetClientName(client, ClientName, sizeof(ClientName));
+		Format(sBuffer, sizeof(sBuffer), "<font color='#00FF00'>%s</font> Kazandı", ClientName);
+		ShowStatusMessage(-1, sBuffer, 2);
 		PrintToChatAll("[SM] \x10%N\x01, klavye delikanlısı oyunu kazandı.", client);
 		CS_RespawnPlayer(client);
 		yazildi = true;
@@ -178,7 +183,7 @@ void ShowStatusMessage(int client = -1, const char[] message = NULL_STRING, int 
 		}
 		show_survival_respawn_status.Cancel();
 	}
-} 
+}
 
 stock bool CheckAdminFlag(int client, const char[] flags) // Z harfi otomatik erişim verir
 {
@@ -197,4 +202,4 @@ stock bool CheckAdminFlag(int client, const char[] flags) // Z harfi otomatik er
 		}
 	}
 	return bEntitled;
-}
+} 
