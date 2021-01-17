@@ -55,13 +55,16 @@ public Action RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 public Action OnClientDead(Event event, const char[] name, bool dontBroadcast)
 {
-	int attacker = GetClientOfUserId(event.GetInt("attacker"));
-	if (IsValidClient(attacker) && BordoBereli[attacker])
+	if (!yazildi)
 	{
-		int victim = GetClientOfUserId(event.GetInt("userid"));
-		if (IsValidClient(victim))
+		int attacker = GetClientOfUserId(event.GetInt("attacker"));
+		if (IsValidClient(attacker) && BordoBereli[attacker])
 		{
-			oldurdumu[attacker] = true;
+			int victim = GetClientOfUserId(event.GetInt("userid"));
+			if (IsValidClient(victim))
+			{
+				oldurdumu[attacker] = true;
+			}
 		}
 	}
 }
