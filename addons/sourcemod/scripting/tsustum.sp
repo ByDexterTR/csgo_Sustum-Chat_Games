@@ -160,6 +160,11 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		ClearWeaponEx(client);
 		ForcePlayerSuicide(client);
 		ChangeClientTeam(client, CS_TEAM_CT);
+		if (h_timer != null)
+		{
+			delete h_timer;
+			h_timer = null;
+		}
 		yazildi = true;
 	}
 }

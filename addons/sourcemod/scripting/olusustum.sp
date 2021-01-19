@@ -158,6 +158,11 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		ShowStatusMessage(-1, sBuffer, 2);
 		PrintToChatAll("[SM] \x10%N\x01, klavye delikanlısı oyunu kazandı.", client);
 		CS_RespawnPlayer(client);
+		if (h_timer != null)
+		{
+			delete h_timer;
+			h_timer = null;
+		}
 		yazildi = true;
 	}
 }

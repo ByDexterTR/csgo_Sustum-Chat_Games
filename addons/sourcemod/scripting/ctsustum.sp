@@ -183,6 +183,11 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 					ChangeClientTeam(i, CS_TEAM_T);
 				}
 			}
+			if (h_timer != null)
+			{
+				delete h_timer;
+				h_timer = null;
+			}
 			yazildi = true;
 		}
 		PrintToChatAll("[SM] \x10%N\x01, klavye delikanlısı yazdı.", client);

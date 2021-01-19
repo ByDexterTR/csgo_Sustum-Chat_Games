@@ -281,6 +281,11 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		SetEntProp(Silahi, Prop_Send, "m_iPrimaryReserveAmmoCount", 0);
 		SetEntProp(Silahi, Prop_Send, "m_iSecondaryReserveAmmoCount", 0);
 		SetEntityRenderColor(client, 0, 255, 0, 255);
+		if (h_timer != null)
+		{
+			delete h_timer;
+			h_timer = null;
+		}
 		yazildi = true;
 	}
 }
