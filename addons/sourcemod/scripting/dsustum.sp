@@ -215,8 +215,8 @@ public Action MenuGoster(Handle timer)
 		randomSayi = GetRandomInt(0, toplamYazi);
 		yazildi = false;
 		h_timer = null;
-		KalanSure2 = 10;
-		h_timer = CreateTimer(0.3, BaslatOyunu, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+		KalanSure2 = 15;
+		h_timer = CreateTimer(1.0, BaslatOyunu, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 		return Plugin_Stop;
 	}
 	else
