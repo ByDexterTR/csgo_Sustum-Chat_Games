@@ -23,13 +23,14 @@ Handle h_timer = null;
 
 #define foreachPlayer(%1) for (int %1 = 1; %1 <= MaxClients; %1++) if (IsClientInGame(%1) && !IsFakeClient(%1))
 
-ConVar tsustum_flag = null;
+ConVar tsustum_flag = null, g_Advanced = null;
 
 public OnPluginStart()
 {
 	HookEvent("round_start", RoundStart);
 	RegConsoleCmd("sm_tsustum", Command_Sustum, "sm_tsustum");
 	tsustum_flag = CreateConVar("sm_tsustum_flag", "q", "Komutçu harici kullanacak kişinin yetki bayrağı");
+	g_Advanced = CreateConVar("sm_tsustum_gosterim", "0", "0 = Menü | 1 = Ekran Ortası");
 	AutoExecConfig(true, "TSustum", "ByDexter");
 	yazilariOku();
 }
@@ -104,14 +105,47 @@ public Action MenuGoster(Handle timer)
 		yazildi = false;
 		h_timer = null;
 		KalanSure2 = 15;
+		if (g_Advanced.BoolValue)
+		{
+			char sBuffer[512];
+			Format(sBuffer, sizeof(sBuffer), "TSustum: <font color='#FFA500'>%s</font> | Kalan Saniye: <font color='#FFA500'>%d</font>", yazilar[randomSayi], KalanSure2);
+			ShowStatusMessage(-1, sBuffer, 2);
+		}
+		else
+		{
+			Menu menu = new Menu(Menu_CallBack);
+			menu.SetTitle("➔ TSustum Kelime: %s\n \n➔ Kalan Saniye: %d\n ", yazilar[randomSayi], KalanSure2);
+			menu.AddItem("X", "Bol Şans Herkese!", ITEMDRAW_DISABLED);
+			menu.ExitBackButton = false;
+			menu.ExitButton = false;
+			foreachPlayer(Oyuncu)
+			{
+				menu.Display(Oyuncu, 1);
+			}
+		}
 		h_timer = CreateTimer(1.0, BaslatOyunu, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 		return Plugin_Stop;
 	}
 	else
 	{
-		char sBuffer[512];
-		Format(sBuffer, sizeof(sBuffer), "TSustum Başlamasına Kalan Saniye: <font color='#00FF00'>%d</font>", KalanSure);
-		ShowStatusMessage(-1, sBuffer, 2);
+		if (g_Advanced.BoolValue)
+		{
+			char sBuffer[512];
+			Format(sBuffer, sizeof(sBuffer), "TSustum Başlamasına Kalan Saniye: <font color='#00FF00'>%d</font>", KalanSure);
+			ShowStatusMessage(-1, sBuffer, 2);
+		}
+		else
+		{
+			Menu menu = new Menu(Menu_CallBack);
+			menu.SetTitle("➔ TSustum Başlamasına Kalan Saniye: %d\n ", KalanSure);
+			menu.AddItem("X", "Bol Şans Herkese!", ITEMDRAW_DISABLED);
+			menu.ExitBackButton = false;
+			menu.ExitButton = false;
+			foreachPlayer(Oyuncu)
+			{
+				menu.Display(Oyuncu, 1);
+			}
+		}
 	}
 	KalanSure--;
 	return Plugin_Continue;
@@ -138,24 +172,62 @@ public Action BaslatOyunu(Handle timer)
 		}
 		else
 		{
-			char sBuffer[512];
-			Format(sBuffer, sizeof(sBuffer), "TSustum: <font color='#FFA500'>%s</font> | Kalan Saniye: <font color='#FFA500'>%d</font>", yazilar[randomSayi], KalanSure2);
-			ShowStatusMessage(-1, sBuffer, 2);
+			if (g_Advanced.BoolValue)
+			{
+				char sBuffer[512];
+				Format(sBuffer, sizeof(sBuffer), "TSustum: <font color='#FFA500'>%s</font> | Kalan Saniye: <font color='#FFA500'>%d</font>", yazilar[randomSayi], KalanSure2);
+				ShowStatusMessage(-1, sBuffer, 2);
+			}
+			else
+			{
+				Menu menu = new Menu(Menu_CallBack);
+				menu.SetTitle("➔ TSustum Kelime: %s\n \n➔ Kalan Saniye: %d\n ", yazilar[randomSayi], KalanSure2);
+				menu.AddItem("X", "Bol Şans Herkese!", ITEMDRAW_DISABLED);
+				menu.ExitBackButton = false;
+				menu.ExitButton = false;
+				foreachPlayer(Oyuncu)
+				{
+					menu.Display(Oyuncu, 1);
+				}
+			}
 		}
 	}
 	KalanSure2--;
 	return Plugin_Continue;
 }
 
+public int Menu_CallBack(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+}
+
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
 	if (!yazildi && IsClientInGame(client) && strcmp(sArgs, yazilar[randomSayi], true) == 0 && !IsFakeClient(client) && GetClientTeam(client) == CS_TEAM_T)
 	{
-		char sBuffer[512];
 		char ClientName[128];
 		GetClientName(client, ClientName, sizeof(ClientName));
-		Format(sBuffer, sizeof(sBuffer), "<font color='#00FF00'>%s</font> Kazandı", ClientName);
-		ShowStatusMessage(-1, sBuffer, 2);
+		if (g_Advanced.BoolValue)
+		{
+			char sBuffer[512];
+			Format(sBuffer, sizeof(sBuffer), "<font color='#00FF00'>%s</font> Kazandı", ClientName);
+			ShowStatusMessage(-1, sBuffer, 2);
+		}
+		else
+		{
+			Menu menu = new Menu(Menu_CallBack);
+			menu.SetTitle("➔ %s Kazandı.\n ", ClientName);
+			menu.AddItem("X", "Tebrikler !!!", ITEMDRAW_DISABLED);
+			menu.ExitBackButton = false;
+			menu.ExitButton = false;
+			foreachPlayer(oyuncu)
+			{
+				menu.Display(oyuncu, 3);
+			}
+		}
 		PrintToChatAll("[SM] \x10%N\x01, klavye delikanlısı oyunu kazandı.", client);
 		ClearWeaponEx(client);
 		ForcePlayerSuicide(client);
@@ -192,7 +264,7 @@ void ShowStatusMessage(int client = -1, const char[] message = NULL_STRING, int 
 	}
 }
 
-stock void ClearWeaponEx(int client)
+void ClearWeaponEx(int client)
 {
 	int wepIdx;
 	for (int i; i < 12; i++)
@@ -205,7 +277,7 @@ stock void ClearWeaponEx(int client)
 	}
 }
 
-stock bool CheckAdminFlag(int client, const char[] flags) // Z harfi otomatik erişim verir
+bool CheckAdminFlag(int client, const char[] flags) // Z harfi otomatik erişim verir
 {
 	int iCount = 0;
 	char sflagNeed[22][8], sflagFormat[64];

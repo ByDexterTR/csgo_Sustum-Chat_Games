@@ -23,13 +23,14 @@ Handle h_timer = null;
 
 #define foreachPlayer(%1) for (int %1 = 1; %1 <= MaxClients; %1++) if (IsClientInGame(%1) && !IsFakeClient(%1))
 
-ConVar ctsustum_flag = null;
+ConVar ctsustum_flag = null, g_Advanced = null;
 
 public OnPluginStart()
 {
 	HookEvent("round_start", RoundStart);
 	RegConsoleCmd("sm_ctsustum", Command_Sustum, "sm_ctsustum");
 	ctsustum_flag = CreateConVar("sm_ctsustum_flag", "q", "Komutçu harici kullanacak kişinin yetki bayrağı");
+	g_Advanced = CreateConVar("sm_ctsustum_gosterim", "0", "0 = Menü | 1 = Ekran Ortası");
 	AutoExecConfig(true, "CTSustum", "ByDexter");
 	yazilariOku();
 }
@@ -117,14 +118,47 @@ public Action MenuGoster(Handle timer)
 		yazildi = false;
 		h_timer = null;
 		KalanSure2 = 15;
+		if (g_Advanced.BoolValue)
+		{
+			char sBuffer[512];
+			Format(sBuffer, sizeof(sBuffer), "CTSustum: <font color='#00FF00'>%s</font> | Kalan Saniye: <font color='#00FF00'>%d</font>", yazilar[randomSayi], KalanSure2);
+			ShowStatusMessage(-1, sBuffer, 2);
+		}
+		else
+		{
+			Menu menu = new Menu(Menu_CallBack);
+			menu.SetTitle("➔ CTSustum Kelime: %s\n \n➔ Kalan Saniye: %d\n ", yazilar[randomSayi], KalanSure2);
+			menu.AddItem("X", "Bol Şans Herkese!", ITEMDRAW_DISABLED);
+			menu.ExitBackButton = false;
+			menu.ExitButton = false;
+			foreachPlayer(Oyuncu)
+			{
+				menu.Display(Oyuncu, 1);
+			}
+		}
 		h_timer = CreateTimer(1.0, BaslatOyunu, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 		return Plugin_Stop;
 	}
 	else
 	{
-		char sBuffer[512];
-		Format(sBuffer, sizeof(sBuffer), "CTSustum Başlamasına Kalan Saniye: <font color='#00FF00'>%d</font>", KalanSure);
-		ShowStatusMessage(-1, sBuffer, 2);
+		if (g_Advanced.BoolValue)
+		{
+			char sBuffer[512];
+			Format(sBuffer, sizeof(sBuffer), "CTSustum Başlamasına Kalan Saniye: <font color='#00FF00'>%d</font>", KalanSure);
+			ShowStatusMessage(-1, sBuffer, 2);
+		}
+		else
+		{
+			Menu menu = new Menu(Menu_CallBack);
+			menu.SetTitle("➔ CTSustum Başlamasına Kalan Saniye: %d\n ", KalanSure);
+			menu.AddItem("X", "Bol Şans Herkese!", ITEMDRAW_DISABLED);
+			menu.ExitBackButton = false;
+			menu.ExitButton = false;
+			foreachPlayer(Oyuncu)
+			{
+				menu.Display(Oyuncu, 1);
+			}
+		}
 	}
 	KalanSure--;
 	return Plugin_Continue;
@@ -136,7 +170,14 @@ public Action BaslatOyunu(Handle timer)
 	{
 		if (!yazildi)
 		{
-			PrintToChatAll("[SM] \x01Kimse yazamadığı için oyun sona erdi.");
+			PrintToChatAll("[SM] Oyun sona erdi.");
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == CS_TEAM_CT && !warden_iswarden(i) && CTyazdimi[i])
+				{
+					PrintToChatAll("[SM] \x01CTSustumu Yazmadı: \x10%N", i);
+				}
+			}
 			yazildi = true;
 		}
 		h_timer = null;
@@ -151,13 +192,36 @@ public Action BaslatOyunu(Handle timer)
 		}
 		else
 		{
-			char sBuffer[512];
-			Format(sBuffer, sizeof(sBuffer), "CTSustum: <font color='#00FF00'>%s</font> | Kalan Saniye: <font color='#00FF00'>%d</font>", yazilar[randomSayi], KalanSure2);
-			ShowStatusMessage(-1, sBuffer, 2);
+			if (g_Advanced.BoolValue)
+			{
+				char sBuffer[512];
+				Format(sBuffer, sizeof(sBuffer), "CTSustum: <font color='#FFA500'>%s</font> | Kalan Saniye: <font color='#FFA500'>%d</font>", yazilar[randomSayi], KalanSure2);
+				ShowStatusMessage(-1, sBuffer, 2);
+			}
+			else
+			{
+				Menu menu = new Menu(Menu_CallBack);
+				menu.SetTitle("➔ CTSustum Kelime: %s\n \n➔ Kalan Saniye: %d\n ", yazilar[randomSayi], KalanSure2);
+				menu.AddItem("X", "Bol Şans Herkese!", ITEMDRAW_DISABLED);
+				menu.ExitBackButton = false;
+				menu.ExitButton = false;
+				foreachPlayer(Oyuncu)
+				{
+					menu.Display(Oyuncu, 1);
+				}
+			}
 		}
 	}
 	KalanSure2--;
 	return Plugin_Continue;
+}
+
+public int Menu_CallBack(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+	}
 }
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
@@ -168,6 +232,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		KALANCT--;
 		if (KALANCT <= 1)
 		{
+			char ClientName[128];
 			for (int i = 1; i <= MaxClients; i++)
 			{
 				if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == CS_TEAM_CT && !warden_iswarden(i) && CTyazdimi[i])
@@ -175,12 +240,26 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 					CTyazdimi[i] = false;
 					ClearWeaponEx(i);
 					ForcePlayerSuicide(i);
-					char sBuffer[512];
-					char ClientName[128];
 					GetClientName(i, ClientName, sizeof(ClientName));
-					Format(sBuffer, sizeof(sBuffer), "<font color='#FF0000'>%s</font> Kaybetti", ClientName);
-					ShowStatusMessage(-1, sBuffer, 2);
 					ChangeClientTeam(i, CS_TEAM_T);
+				}
+			}
+			if (g_Advanced.BoolValue)
+			{
+				char sBuffer[512];
+				Format(sBuffer, sizeof(sBuffer), "<font color='#00FF00'>%s</font> Kaybetti", ClientName);
+				ShowStatusMessage(-1, sBuffer, 2);
+			}
+			else
+			{
+				Menu menu = new Menu(Menu_CallBack);
+				menu.SetTitle("➔ %s Kaybeti.\n ", ClientName);
+				menu.AddItem("X", "Aga be :C", ITEMDRAW_DISABLED);
+				menu.ExitBackButton = false;
+				menu.ExitButton = false;
+				foreachPlayer(oyuncu)
+				{
+					menu.Display(oyuncu, 3);
 				}
 			}
 			if (h_timer != null)
@@ -217,7 +296,8 @@ void ShowStatusMessage(int client = -1, const char[] message = NULL_STRING, int 
 	}
 }
 
-stock void ClearWeaponEx(int client)
+
+void ClearWeaponEx(int client)
 {
 	int wepIdx;
 	for (int i; i < 12; i++)
@@ -230,7 +310,7 @@ stock void ClearWeaponEx(int client)
 	}
 }
 
-stock bool CheckAdminFlag(int client, const char[] flags) // Z harfi otomatik erişim verir
+bool CheckAdminFlag(int client, const char[] flags) // Z harfi otomatik erişim verir
 {
 	int iCount = 0;
 	char sflagNeed[22][8], sflagFormat[64];
