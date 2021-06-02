@@ -5,6 +5,9 @@
 
 #define MAX_WORDS 2048
 
+#pragma semicolon 1
+#pragma newdecls required
+
 public Plugin myinfo = 
 {
 	name = "DSustum", 
@@ -15,11 +18,11 @@ public Plugin myinfo =
 };
 
 char yazilar[MAX_WORDS][256];
-bool yazildi = true, vantep = true;
+bool yazildi = true;
 static int randomSayi;
 static int toplamYazi;
 int KalanSure, KalanSure2;
-bool BordoBereli[MAXPLAYERS] =  { false, ... }, oldurdumu[MAXPLAYERS] =  { false, ... };
+bool BordoBereli[MAXPLAYERS] =  { false, ... };
 Handle h_timer = null;
 
 #define foreachPlayer(%1) for (int %1 = 1; %1 <= MaxClients; %1++) if (IsValidClient(%1))
@@ -29,14 +32,12 @@ ConVar dsustum_flag = null, g_Advanced = null;
 public void OnClientPostAdminCheck(int client)
 {
 	BordoBereli[client] = false;
-	oldurdumu[client] = false;
 }
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	HookEvent("weapon_fire", WeaponFire);
 	HookEvent("round_start", RoundStart);
-	HookEvent("player_death", OnClientDead);
 	RegConsoleCmd("sm_dsustum", Command_Sustum, "sm_dsustum");
 	dsustum_flag = CreateConVar("sm_dsustum_flag", "q", "Komutçu harici kullanacak kişinin yetki bayrağı");
 	g_Advanced = CreateConVar("sm_dsustum_gosterim", "0", "0 = Menü | 1 = Ekran Ortası");
@@ -52,22 +53,6 @@ public Action RoundStart(Event event, const char[] name, bool dontBroadcast)
 		h_timer = null;
 	}
 	yazildi = true;
-}
-
-public Action OnClientDead(Event event, const char[] name, bool dontBroadcast)
-{
-	if (!yazildi)
-	{
-		int attacker = GetClientOfUserId(event.GetInt("attacker"));
-		if (IsValidClient(attacker) && BordoBereli[attacker])
-		{
-			int victim = GetClientOfUserId(event.GetInt("userid"));
-			if (IsValidClient(victim))
-			{
-				oldurdumu[attacker] = true;
-			}
-		}
-	}
 }
 
 public void OnMapStart()
@@ -102,11 +87,14 @@ public Action Command_Sustum(int client, int args)
 	{
 		if (yazildi)
 		{
-			Menu menu = new Menu(Menu_CallBack31);
-			menu.SetTitle("[DSUSTUM] Öldüremezse Ölsün Mü?\n ");
-			menu.AddItem("0", "Evet");
-			menu.AddItem("1", "Hayır");
-			menu.Display(client, 0);
+			KalanSure = 3;
+			PrintToChatAll("[SM] \x10%N\x01, DSustumu başlattı.", client);
+			if (h_timer != null)
+			{
+				delete h_timer;
+				h_timer = null;
+			}
+			h_timer = CreateTimer(1.0, MenuGoster, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 			return Plugin_Handled;
 		}
 		else
@@ -119,44 +107,6 @@ public Action Command_Sustum(int client, int args)
 	{
 		ReplyToCommand(client, "[SM] \x01Bu komuta erişiminiz yok.");
 		return Plugin_Handled;
-	}
-}
-
-public int Menu_CallBack31(Menu menu, MenuAction action, int param1, int param2)
-{
-	if (action == MenuAction_Select)
-	{
-		if (yazildi)
-		{
-			char Item[32];
-			menu.GetItem(param2, Item, sizeof(Item));
-			if (StringToInt(Item) == 0)
-			{
-				vantep = true;
-			}
-			else if (StringToInt(Item) == 1)
-			{
-				vantep = false;
-			}
-			foreachPlayer(player)
-			{
-				oldurdumu[player] = false;
-				BordoBereli[player] = false;
-			}
-			KalanSure = 3;
-			PrintToChatAll("[SM] \x10%N\x01, DSustumu başlattı.", param1);
-			if (h_timer != null)
-				delete h_timer;
-			h_timer = CreateTimer(1.0, MenuGoster, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
-		}
-		else
-		{
-			PrintToChat(param1, "[SM] \x01Aktif bir DSustum bulunmakta.");
-		}
-	}
-	else if (action == MenuAction_End)
-	{
-		delete menu;
 	}
 }
 
@@ -186,27 +136,7 @@ public Action Silahial(Handle timer, int userid)
 			RemoveEntity(Slots);
 		}
 		SetEntityRenderColor(client, 255, 255, 255, 255);
-		CreateTimer(0.5, Kontrolettir, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 	}
-}
-
-public Action Kontrolettir(Handle timer, int userid)
-{
-	int client = GetClientOfUserId(userid);
-	if (IsValidClient(client) && vantep)
-	{
-		if (oldurdumu[client])
-		{
-			PrintToChatAll("[SM] \x10%N\x01, birisini avladığı için hayatta kaldı.", client);
-		}
-		else
-		{
-			PrintToChatAll("[SM] \x10%N\x01, kimseyi öldüremediği için öldürüldü.", client);
-			ForcePlayerSuicide(client);
-		}
-	}
-	BordoBereli[client] = false;
-	oldurdumu[client] = false;
 }
 
 public Action MenuGoster(Handle timer)
@@ -225,15 +155,23 @@ public Action MenuGoster(Handle timer)
 		}
 		else
 		{
-			Menu menu = new Menu(Menu_CallBack);
+			/*Menu menu = new Menu(Menu_CallBack);
 			menu.SetTitle("➔ DSustum Kelime: %s\n \n➔ Kalan Saniye: %d\n ", yazilar[randomSayi], KalanSure2);
 			menu.AddItem("X", "Bol Şans Herkese!", ITEMDRAW_DISABLED);
 			menu.ExitBackButton = false;
-			menu.ExitButton = false;
+			menu.ExitButton = false;*/
+			Panel panel = new Panel();
+			char MenuFormat[256];
+			Format(MenuFormat, 256, "DSustum Kalan Saniye: %d\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", KalanSure2);
+			panel.SetTitle(MenuFormat);
+			Format(MenuFormat, 256, "%s\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", yazilar[randomSayi]);
+			panel.DrawText(MenuFormat);
 			foreachPlayer(Oyuncu)
 			{
-				menu.Display(Oyuncu, 1);
+				//menu.Display(Oyuncu, 1);
+				panel.Send(Oyuncu, Panel_CallBack, 1);
 			}
+			delete panel;
 		}
 		h_timer = CreateTimer(1.0, BaslatOyunu, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 		return Plugin_Stop;
@@ -248,7 +186,18 @@ public Action MenuGoster(Handle timer)
 		}
 		else
 		{
-			Menu menu = new Menu(Menu_CallBack);
+			Panel panel = new Panel();
+			char MenuFormat[256];
+			Format(MenuFormat, 256, "DSustum %d Saniye sonra başlayacak\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", KalanSure);
+			panel.SetTitle(MenuFormat);
+			Format(MenuFormat, 256, "Kelime burada çıkacak\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬");
+			panel.DrawText(MenuFormat);
+			foreachPlayer(Oyuncu)
+			{
+				panel.Send(Oyuncu, Panel_CallBack, 1);
+			}
+			delete panel;
+			/*Menu menu = new Menu(Menu_CallBack);
 			menu.SetTitle("➔ DSustum Başlamasına Kalan Saniye: %d\n ", KalanSure);
 			menu.AddItem("X", "Bol Şans Herkese!", ITEMDRAW_DISABLED);
 			menu.ExitBackButton = false;
@@ -256,7 +205,7 @@ public Action MenuGoster(Handle timer)
 			foreachPlayer(Oyuncu)
 			{
 				menu.Display(Oyuncu, 1);
-			}
+			}*/
 		}
 	}
 	KalanSure--;
@@ -292,15 +241,18 @@ public Action BaslatOyunu(Handle timer)
 			}
 			else
 			{
-				Menu menu = new Menu(Menu_CallBack);
-				menu.SetTitle("➔ DSustum Kelime: %s\n \n➔ Kalan Saniye: %d\n ", yazilar[randomSayi], KalanSure2);
-				menu.AddItem("X", "Bol Şans Herkese!", ITEMDRAW_DISABLED);
-				menu.ExitBackButton = false;
-				menu.ExitButton = false;
+				Panel panel = new Panel();
+				char MenuFormat[256];
+				Format(MenuFormat, 256, "DSustum Kalan Saniye: %d\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", KalanSure2);
+				panel.SetTitle(MenuFormat);
+				Format(MenuFormat, 256, "%s\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", yazilar[randomSayi]);
+				panel.DrawText(MenuFormat);
 				foreachPlayer(Oyuncu)
 				{
-					menu.Display(Oyuncu, 1);
+					//menu.Display(Oyuncu, 1);
+					panel.Send(Oyuncu, Panel_CallBack, 1);
 				}
+				delete panel;
 			}
 		}
 	}
@@ -308,13 +260,13 @@ public Action BaslatOyunu(Handle timer)
 	return Plugin_Continue;
 }
 
-public int Menu_CallBack(Menu menu, MenuAction action, int param1, int param2)
+/*public int Menu_CallBack(Menu menu, MenuAction action, int param1, int param2)
 {
 	if (action == MenuAction_End)
 	{
 		delete menu;
 	}
-}
+}*/
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
@@ -330,7 +282,19 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		}
 		else
 		{
-			Menu menu = new Menu(Menu_CallBack);
+			Panel panel = new Panel();
+			char MenuFormat[256];
+			Format(MenuFormat, 256, "Kazanan: %s\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", ClientName);
+			panel.SetTitle(MenuFormat);
+			Format(MenuFormat, 256, "Tebrikler!\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬");
+			panel.DrawText(MenuFormat);
+			foreachPlayer(Oyuncu)
+			{
+				//menu.Display(Oyuncu, 1);
+				panel.Send(Oyuncu, Panel_CallBack, 3);
+			}
+			delete panel;
+			/*Menu menu = new Menu(Menu_CallBack);
 			menu.SetTitle("➔ %s Kazandı.\n ", ClientName);
 			menu.AddItem("X", "Tebrikler !!!", ITEMDRAW_DISABLED);
 			menu.ExitBackButton = false;
@@ -338,7 +302,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			foreachPlayer(oyuncu)
 			{
 				menu.Display(oyuncu, 3);
-			}
+			}*/
 		}
 		PrintToChatAll("[SM] \x10%N\x01, klavye delikanlısı oyunu kazandı.", client);
 		BordoBereli[client] = true;
@@ -360,6 +324,10 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		}
 		yazildi = true;
 	}
+}
+
+public int Panel_CallBack(Menu panel, MenuAction action, int client, int position)
+{
 }
 
 void ShowStatusMessage(int client = -1, const char[] message = NULL_STRING, int hold = 1)
