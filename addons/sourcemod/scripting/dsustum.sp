@@ -22,7 +22,7 @@ bool yazildi = true;
 static int randomSayi;
 static int toplamYazi;
 int KalanSure, KalanSure2;
-bool BordoBereli[MAXPLAYERS] =  { false, ... };
+bool BordoBereli[MAXPLAYERS] = { false, ... };
 Handle h_timer = null;
 
 #define foreachPlayer(%1) for (int %1 = 1; %1 <= MaxClients; %1++) if (IsValidClient(%1))
@@ -51,6 +51,10 @@ public Action RoundStart(Event event, const char[] name, bool dontBroadcast)
 	{
 		delete h_timer;
 		h_timer = null;
+	}
+	foreachPlayer(i)
+	{
+		BordoBereli[i] = false;
 	}
 	yazildi = true;
 }
@@ -119,6 +123,7 @@ public Action WeaponFire(Event event, const char[] name, bool dontBroadcast)
 		GetClientWeapon(client, WeaponNameDeagle, sizeof(WeaponNameDeagle));
 		if (strcmp(WeaponNameDeagle, "weapon_deagle", false) == 0)
 		{
+			BordoBereli[client] = false;
 			CreateTimer(0.3, Silahial, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
